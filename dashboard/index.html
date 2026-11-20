@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Token Radar — pre-token protocols ranked by implied value</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header>
+  <h1>Token Radar</h1>
+  <p class="sub">Protocols that record no token, ranked by the implied value of a token issued on today's record. Values are this entry's own claim, fitted on protocols whose tokens already trade — never a prediction that a token will be issued.</p>
+  <div id="banner" class="banner"></div>
+  <nav>
+    <button data-view="board" class="tab on">Board</button>
+    <button data-view="detail" class="tab">Detail</button>
+    <button data-view="cal" class="tab">Calibration</button>
+  </nav>
+</header>
+<main>
+  <section id="view-board">
+    <div class="controls">
+      <input id="q" type="search" placeholder="Search name or slug">
+      <select id="fcat"><option value="">All categories</option></select>
+      <select id="fconf"><option value="">Any confidence</option><option>High</option><option>Medium</option><option>Low</option></select>
+      <select id="fchains"><option value="">Any chains</option><option value="1">1 chain</option><option value="2">2 chains</option><option value="3">3+ chains</option></select>
+      <label class="chk"><input type="checkbox" id="fwatch"> Watchlist only</label>
+      <span id="shown" class="muted"></span>
+    </div>
+    <table id="boardtbl">
+      <thead><tr>
+        <th data-k="rank">#</th><th data-k="n">Protocol</th><th data-k="c">Category</th>
+        <th data-k="chains">Chains</th><th data-k="tvl">TVL</th><th data-k="g">7d</th>
+        <th data-k="v">Implied value</th><th data-k="band">Band (low–high)</th><th data-k="cf">Conf.</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+  <section id="view-detail" hidden></section>
+  <section id="view-cal" hidden>
+    <h2>Calibration — leave-one-out on the live-token peers</h2>
+    <p class="muted">Each peer was hidden in turn, the model refitted on the rest, and its token's actual market cap predicted. The scatter plots those 128 honest estimates against actuals; the table breaks the error down by category. Bands are conformal: the half-width is a quantile of the leave-one-out residuals, scaled per row by a difficulty score, tuned so the scaled bands cover about 80% of peers.</p>
+    <div id="scatter"></div>
+    <div id="caltable"></div>
+    <h2>Methodology</h2>
+    <div class="meth">
+      <p><b>Peers.</b> The 128 protocols in the snapshot that record a token with a positive market cap. Everything is fitted on them; nothing else carries a value signal.</p>
+      <p><b>Three estimators, one median.</b> E1 is a per-category market-cap/TVL multiple — winsorised at the 5th–95th percentile, shrunk toward the global multiple in log space — with a size adjustment. E2 is a log-space regression: category intercepts shrunk toward the global intercept, plus terms for log TVL, chain count, age in years, and 7-day growth clamped to the range the peers themselves span (−40%…+30%, just above the peer maximum of +26.7%), so no fitted slope is ever extrapolated beyond the data it was fitted on. E3 is the same regression refitted with Huber weights so outliers cannot drag it. The published value is the median of the three, in log space.</p>
+      <p><b>Configuration choice — the back-test decides.</b> Three configurations were leave-one-out tested on all 128 peers: a round-4-style single multiple, the ensemble above, and a richer variant with per-category size exponents and covariate adjustments on E1. The richer variant lost (per-category exponents alone scored a median error of 0.641 against 0.603 for the global exponent — small categories are too noisy to carry their own slope), so the shipped E1 uses the global size exponent and no adjustments. Per-category exponents are still fitted and published in the table above. All three scores are in the calibration object in board.json.</p>
+      <p><b>Missing data.</b> A missing listing date is replaced by the category's median peer age and flagged; a missing 7-day change is treated as zero growth and flagged in the band width. Categories with no live peer fall back to global parameters and are flagged as uncalibrated.</p>
+      <p><b>Reading the board.</b> "Records no token" is DefiLlama's record, not proof a protocol has no token. The band is a calibration interval from peer errors, not a price forecast, and the farm steps are a reader's activity plan — what to do on the protocol, at what cost — not a promise of any airdrop.</p>
+    </div>
+  </section>
+</main>
+<footer class="muted">Snapshot as of <span id="asof"></span> · Deterministic build · Model and back-test details under Calibration.</footer>
+<script src="../data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
